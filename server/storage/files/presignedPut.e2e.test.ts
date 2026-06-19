@@ -7,7 +7,7 @@ vi.mock("@server/storage/files");
 const server = getTestServer();
 
 describe("presigned PUT URL e2e", () => {
-  it("should return presignedPutUrl for document attachment upload", async () => {
+  it("should return presignedPutUrl and headers for document attachment upload", async () => {
     const user = await buildUser();
     const document = await buildDocument({
       teamId: user.teamId,
@@ -28,12 +28,20 @@ describe("presigned PUT URL e2e", () => {
     const body = await res.json();
 
     expect(body.data).toHaveProperty("presignedPutUrl");
+    expect(body.data).toHaveProperty("presignedPutHeaders");
     expect(body.data).toHaveProperty("uploadUrl");
     expect(body.data).toHaveProperty("form");
     expect(body.data).toHaveProperty("attachment");
 
     expect(body.data.presignedPutUrl).toBe(
       "http://s3mock/presigned-put-url"
+    );
+    expect(body.data.presignedPutHeaders).toEqual(
+      expect.objectContaining({
+        "Content-Type": expect.any(String),
+        "Content-Disposition": expect.any(String),
+        "Cache-Control": "max-age=31557600",
+      })
     );
     expect(body.data.uploadUrl).toBe("http://mock/create");
     expect(body.data.form["Content-Type"]).toBe("image/jpeg");
@@ -58,6 +66,7 @@ describe("presigned PUT URL e2e", () => {
     const body = await res.json();
 
     expect(body.data.presignedPutUrl).toBeDefined();
+    expect(body.data.presignedPutHeaders).toBeDefined();
     expect(body.data.uploadUrl).toBeDefined();
     expect(body.data.form).toBeDefined();
   });
@@ -77,6 +86,7 @@ describe("presigned PUT URL e2e", () => {
     const body = await res.json();
 
     expect(body.data.presignedPutUrl).toBeDefined();
+    expect(body.data.presignedPutHeaders).toBeDefined();
     expect(body.data.uploadUrl).toBeDefined();
   });
 
@@ -99,7 +109,13 @@ describe("presigned PUT URL e2e", () => {
     expect(res.status).toEqual(200);
     const body = await res.json();
 
-    const { uploadUrl, form, presignedPutUrl, attachment } = body.data;
+    const {
+      uploadUrl,
+      form,
+      presignedPutUrl,
+      presignedPutHeaders,
+      attachment,
+    } = body.data;
     expect(uploadUrl).toEqual(expect.any(String));
     expect(form).toEqual(
       expect.objectContaining({
@@ -108,6 +124,12 @@ describe("presigned PUT URL e2e", () => {
       })
     );
     expect(presignedPutUrl).toEqual(expect.any(String));
+    expect(presignedPutHeaders).toEqual(
+      expect.objectContaining({
+        "Content-Type": expect.any(String),
+        "Cache-Control": expect.any(String),
+      })
+    );
     expect(attachment.id).toEqual(expect.any(String));
     expect(attachment.contentType).toBe("application/pdf");
   });

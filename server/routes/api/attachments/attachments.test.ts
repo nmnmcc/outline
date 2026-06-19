@@ -166,7 +166,7 @@ describe("#attachments.create", () => {
       expect(res.status).toEqual(200);
     });
 
-    it("should return presignedPutUrl alongside POST form data", async () => {
+    it("should return presignedPutUrl and headers alongside POST form data", async () => {
       const user = await buildUser();
       const res = await server.post("/api/attachments.create", user, {
         body: {
@@ -180,13 +180,19 @@ describe("#attachments.create", () => {
 
       const body = await res.json();
       expect(body.data.presignedPutUrl).toBeDefined();
+      expect(body.data.presignedPutHeaders).toBeDefined();
+      expect(body.data.presignedPutHeaders["Content-Type"]).toBeDefined();
+      expect(body.data.presignedPutHeaders["Content-Disposition"]).toBeDefined();
+      expect(body.data.presignedPutHeaders["Cache-Control"]).toBe(
+        "max-age=31557600"
+      );
       expect(body.data.uploadUrl).toBeDefined();
       expect(body.data.form).toBeDefined();
       expect(body.data.attachment).toBeDefined();
     });
 
     it("should return undefined presignedPutUrl when storage does not support PUT", async () => {
-      vi.mocked(FileStorage.getPresignedPutUrl).mockResolvedValueOnce(
+      vi.mocked(FileStorage.getPresignedPut).mockResolvedValueOnce(
         // @ts-expect-error testing undefined return for LocalStorage fallback
         undefined
       );
@@ -204,6 +210,7 @@ describe("#attachments.create", () => {
 
       const body = await res.json();
       expect(body.data.presignedPutUrl).toBeUndefined();
+      expect(body.data.presignedPutHeaders).toBeUndefined();
       expect(body.data.uploadUrl).toBeDefined();
       expect(body.data.form).toBeDefined();
     });

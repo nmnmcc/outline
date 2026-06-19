@@ -93,7 +93,7 @@ export function attachmentTools(server: McpServer, scopes: string[]) {
               userId: user.id,
             });
 
-            const [presignedPost, presignedPutUrl] = await Promise.all([
+            const [presignedPost, presignedPut] = await Promise.all([
               FileStorage.getPresignedPost(
                 ctx,
                 key,
@@ -101,7 +101,7 @@ export function attachmentTools(server: McpServer, scopes: string[]) {
                 maxUploadSize,
                 contentType
               ),
-              FileStorage.getPresignedPutUrl(
+              FileStorage.getPresignedPut(
                 key,
                 acl,
                 maxUploadSize,
@@ -122,14 +122,17 @@ export function attachmentTools(server: McpServer, scopes: string[]) {
               .map(([k, v]) => `-F '${k}=${v}'`)
               .join(" ");
             const curlCommand = `curl -X POST ${formArgs} -F 'file=@/path/to/file' '${uploadUrl}'`;
-            const curlPutCommand = presignedPutUrl
-              ? `curl -X PUT -H 'Content-Type: ${contentType}' --data-binary '@/path/to/file' '${presignedPutUrl}'`
+            const curlPutCommand = presignedPut
+              ? `curl -X PUT ${Object.entries(presignedPut.headers)
+                  .map(([k, v]) => `-H '${k}: ${v}'`)
+                  .join(" ")} --data-binary '@/path/to/file' '${presignedPut.url}'`
               : undefined;
 
             return success({
               uploadUrl,
               form,
-              presignedPutUrl,
+              presignedPutUrl: presignedPut?.url,
+              presignedPutHeaders: presignedPut?.headers,
               maxUploadSize,
               curlCommand,
               curlPutCommand,

@@ -11,7 +11,12 @@ export default {
 
   getPresignedPost: vi.fn().mockReturnValue({}),
 
-  getPresignedPutUrl: vi
-    .fn()
-    .mockReturnValue("http://s3mock/presigned-put-url"),
+  getPresignedPut: vi.fn().mockReturnValue({
+    url: "http://s3mock/presigned-put-url",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": "attachment",
+      "Cache-Control": "max-age=31557600",
+    },
+  }),
 };

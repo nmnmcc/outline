@@ -97,7 +97,11 @@ export const uploadFile = async (
 
     if (usePut) {
       xhr.open("PUT", data.presignedPutUrl, true);
-      xhr.setRequestHeader("Content-Type", file.type);
+      for (const [key, value] of Object.entries(
+        data.presignedPutHeaders as Record<string, string>
+      )) {
+        xhr.setRequestHeader(key, value);
+      }
       // @ts-expect-error ts-migrate(2339) FIXME: Property 'blob' does not exist on type 'File | Blo...
       xhr.send(file.blob ? file.file : file);
     } else {
