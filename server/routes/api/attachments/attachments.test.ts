@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { AttachmentPreset, CollectionPermission } from "@shared/types";
+import env from "@server/env";
 import { UserMembership } from "@server/models";
 import Attachment from "@server/models/Attachment";
+import FileStorage from "@server/storage/files";
 import {
   buildUser,
   buildAdmin,
@@ -163,6 +165,65 @@ describe("#attachments.create", () => {
         },
       });
       expect(res.status).toEqual(200);
+    });
+
+    it("should return PUT data when FILE_STORAGE_UPLOAD_METHOD is put", async () => {
+      const original = env.FILE_STORAGE_UPLOAD_METHOD;
+      env.FILE_STORAGE_UPLOAD_METHOD = "put";
+
+      try {
+        const user = await buildUser();
+        const res = await server.post("/api/attachments.create", user, {
+          body: {
+            name: "test.png",
+            contentType: "image/png",
+            size: 1000,
+            preset: AttachmentPreset.Avatar,
+          },
+        });
+        expect(res.status).toEqual(200);
+
+        const body = await res.json();
+        expect(body.data.presignedPutUrl).toBeDefined();
+        expect(body.data.presignedPutHeaders).toBeDefined();
+        expect(body.data.presignedPutHeaders["Content-Type"]).toBeDefined();
+        expect(body.data.presignedPutHeaders["Content-Disposition"]).toBeDefined();
+        expect(body.data.presignedPutHeaders["Cache-Control"]).toBe(
+          "max-age=31557600"
+        );
+        expect(body.data.uploadUrl).toBeUndefined();
+        expect(body.data.form).toBeUndefined();
+        expect(body.data.attachment).toBeDefined();
+      } finally {
+        env.FILE_STORAGE_UPLOAD_METHOD = original;
+      }
+    });
+
+    it("should return POST data when FILE_STORAGE_UPLOAD_METHOD is post", async () => {
+      const original = env.FILE_STORAGE_UPLOAD_METHOD;
+      env.FILE_STORAGE_UPLOAD_METHOD = "post";
+
+      try {
+        const user = await buildUser();
+        const res = await server.post("/api/attachments.create", user, {
+          body: {
+            name: "test.png",
+            contentType: "image/png",
+            size: 1000,
+            preset: AttachmentPreset.Avatar,
+          },
+        });
+        expect(res.status).toEqual(200);
+
+        const body = await res.json();
+        expect(body.data.presignedPutUrl).toBeUndefined();
+        expect(body.data.presignedPutHeaders).toBeUndefined();
+        expect(body.data.uploadUrl).toBeDefined();
+        expect(body.data.form).toBeDefined();
+        expect(body.data.attachment).toBeDefined();
+      } finally {
+        env.FILE_STORAGE_UPLOAD_METHOD = original;
+      }
     });
 
     it("should create expiring attachment using import preset", async () => {

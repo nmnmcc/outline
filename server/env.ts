@@ -712,6 +712,16 @@ export class Environment {
   public FILE_STORAGE = this.toOptionalString(environment.FILE_STORAGE) ?? "s3";
 
   /**
+   * Which HTTP method to use for presigned uploads to S3-compatible storage.
+   * "post" uses multipart form upload (traditional S3 presigned POST).
+   * "put" uses a single PUT request with a presigned URL (required for
+   * providers like Cloudflare R2 that do not support presigned POST).
+   */
+  @IsIn(["put", "post"])
+  public FILE_STORAGE_UPLOAD_METHOD =
+    this.toOptionalString(environment.FILE_STORAGE_UPLOAD_METHOD) ?? "post";
+
+  /**
    * Set default root dir path for local file storage
    */
   public FILE_STORAGE_LOCAL_ROOT_DIR =

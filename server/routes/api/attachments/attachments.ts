@@ -3,6 +3,7 @@ import type { WhereOptions } from "sequelize";
 import { randomUUID } from "node:crypto";
 import { AttachmentPreset } from "@shared/types";
 import { bytesToHumanReadable, getFileNameFromUrl } from "@shared/utils/files";
+import env from "@server/env";
 import { AttachmentValidation } from "@shared/validations";
 import { createContext } from "@server/context";
 import {
@@ -138,28 +139,50 @@ router.post(
       userId: user.id,
     });
 
-    const presignedPost = await FileStorage.getPresignedPost(
-      ctx,
-      key,
-      acl,
-      maxUploadSize,
-      contentType
-    );
+    const usePut = env.FILE_STORAGE_UPLOAD_METHOD === "put";
 
-    ctx.body = {
-      data: {
-        uploadUrl: FileStorage.getUploadUrl(),
-        form: {
-          "Cache-Control": "max-age=31557600",
-          "Content-Type": contentType,
-          ...presignedPost.fields,
+    if (usePut) {
+      const presignedPut = await FileStorage.getPresignedPut(
+        key,
+        acl,
+        maxUploadSize,
+        contentType
+      );
+
+      ctx.body = {
+        data: {
+          presignedPutUrl: presignedPut?.url,
+          presignedPutHeaders: presignedPut?.headers,
+          attachment: {
+            ...presentAttachment(attachment),
+            url: attachment.redirectUrl,
+          },
         },
-        attachment: {
-          ...presentAttachment(attachment),
-          url: attachment.redirectUrl,
+      };
+    } else {
+      const presignedPost = await FileStorage.getPresignedPost(
+        ctx,
+        key,
+        acl,
+        maxUploadSize,
+        contentType
+      );
+
+      ctx.body = {
+        data: {
+          uploadUrl: FileStorage.getUploadUrl(),
+          form: {
+            "Cache-Control": "max-age=31557600",
+            "Content-Type": contentType,
+            ...presignedPost.fields,
+          },
+          attachment: {
+            ...presentAttachment(attachment),
+            url: attachment.redirectUrl,
+          },
         },
-      },
-    };
+      };
+    }
   }
 );
 
